@@ -18,6 +18,26 @@ int main(void) {
     // STEP 1 — Read the WAV file
     printf("[ Step 1 ] Reading WAV file: %s\n", WAV_FILE);
     FileBuffer wav = readFile(WAV_FILE);
+
+if (!wav.data) {
+    fprintf(stderr, "Failed to read WAV file. Exiting.\n");
+    return 1;
+}
+
+long dataOffset = 44;
+if (wav.size <= dataOffset) {
+    fprintf(stderr, "File too small to be valid WAV.\n");
+    freeFileBuffer(&wav);
+    return 1;
+}
+
+unsigned char *audioData = wav.data + dataOffset;
+long dataSize = wav.size - dataOffset;
+
+FileBuffer audioBuffer;
+audioBuffer.data = audioData;
+audioBuffer.size = dataSize;
+
     if (!wav.data) {
         fprintf(stderr, "Failed to read WAV file. Exiting.\n");
         return 1;
@@ -29,7 +49,7 @@ int main(void) {
     // STEP 2 — Build frequency table
     printf("[ Step 2 ] Counting byte frequencies...\n");
     FreqTable freq;
-    buildFrequencyTable(wav.data, wav.size, freq);
+    buildFrequencyTable(audioData, dataSize, freq);
     //printFrequencyTable(freq); --
 
 
@@ -55,7 +75,7 @@ int main(void) {
 
     // STEP 5 — Encode and write the .huff file
     printf("[ Step 5 ] Encoding and writing '%s'...\n", OUT_FILE);
-    long huffSize = encodeToFile(&wav, table, OUT_FILE);
+long huffSize = encodeToFile(&audioBuffer, table, OUT_FILE);
     if (huffSize == 0) {
         fprintf(stderr, "Encoding failed. Exiting.\n");
         freeHuffmanTree(root);
