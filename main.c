@@ -55,10 +55,6 @@ audioBuffer.data = audioData;
 audioBuffer.size = dataSize;
 
 
-    if (!wav.data) {
-        fprintf(stderr, "Failed to read WAV file. Exiting.\n");
-        return 1;
-    }
     printf("  Loaded %ld bytes (%.2f MB)\n\n",
            wav.size, (double)wav.size / (1024.0 * 1024.0));
 
