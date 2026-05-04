@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "huffman_tree.h"
 
-// ---- helpers: min-heap operations -------------------------
+// MinHeap lives here now — nothing outside this file needs to know about it
+typedef struct {
+    HuffNode *nodes[NUM_SYMBOLS * 2];
+    int       size;
+} MinHeap;
 
 static HuffNode *newNode(int symbol, unsigned long long freq) {
     HuffNode *n = (HuffNode *)malloc(sizeof(HuffNode));
@@ -15,14 +18,12 @@ static HuffNode *newNode(int symbol, unsigned long long freq) {
     return n;
 }
 
-// swap two pointers in the heap array
 static void swap(MinHeap *h, int i, int j) {
     HuffNode *tmp = h->nodes[i];
     h->nodes[i]   = h->nodes[j];
     h->nodes[j]   = tmp;
 }
 
-// after inserting at the end, bubble it up to restore heap property
 static void bubbleUp(MinHeap *h, int idx) {
     while (idx > 0) {
         int parent = (idx - 1) / 2;
@@ -35,7 +36,6 @@ static void bubbleUp(MinHeap *h, int idx) {
     }
 }
 
-// after removing the root, push the last element to top and sink it down
 static void sinkDown(MinHeap *h, int idx) {
     int size = h->size;
     while (1) {
@@ -64,21 +64,17 @@ static void heapInsert(MinHeap *h, HuffNode *node) {
 }
 
 static HuffNode *heapExtractMin(MinHeap *h) {
-    HuffNode *min  = h->nodes[0];       // smallest is always at the top
+    HuffNode *min = h->nodes[0];
     h->size--;
-    h->nodes[0]    = h->nodes[h->size]; // move last element to top
-    sinkDown(h, 0);                     // restore heap property
+    h->nodes[0] = h->nodes[h->size];
+    sinkDown(h, 0);
     return min;
 }
-
-
-// ---- main builder -----------------------------------------
 
 HuffNode *buildHuffmanTree(const FreqTable freq) {
     MinHeap heap;
     heap.size = 0;
 
-    // Step 1 — create one leaf node per symbol that actually appears
     int leafCount = 0;
     for (int b = 0; b < NUM_SYMBOLS; b++) {
         if (freq[b] > 0) {
@@ -89,34 +85,26 @@ HuffNode *buildHuffmanTree(const FreqTable freq) {
 
     printf("Building Huffman tree from %d distinct symbols...\n", leafCount);
 
-    // edge case: only one unique byte in the whole file
     if (heap.size == 1) {
-        // wrap it in a parent so it still gets a code
-        HuffNode *only  = heapExtractMin(&heap);
-        HuffNode *root  = newNode(-1, only->freq);
-        root->left      = only;
+        HuffNode *only = heapExtractMin(&heap);
+        HuffNode *root = newNode(-1, only->freq);
+        root->left     = only;
         return root;
     }
 
-    // Step 2 — repeatedly merge the two lowest-frequency nodes
     while (heap.size > 1) {
-        HuffNode *left  = heapExtractMin(&heap);  // lowest freq
-        HuffNode *right = heapExtractMin(&heap);  // second lowest
+        HuffNode *left  = heapExtractMin(&heap);
+        HuffNode *right = heapExtractMin(&heap);
 
-        // create a parent whose frequency is the sum
-        HuffNode *parent  = newNode(-1, left->freq + right->freq);
-        parent->left      = left;
-        parent->right     = right;
+        HuffNode *parent = newNode(-1, left->freq + right->freq);
+        parent->left     = left;
+        parent->right    = right;
 
-        heapInsert(&heap, parent);  // put the merged node back
+        heapInsert(&heap, parent);
     }
 
-    // Step 3 — the one remaining node is the root
     return heapExtractMin(&heap);
 }
-
-
-// ---- cleanup ----------------------------------------------
 
 void freeHuffmanTree(HuffNode *root) {
     if (!root) return;
@@ -124,23 +112,3 @@ void freeHuffmanTree(HuffNode *root) {
     freeHuffmanTree(root->right);
     free(root);
 }
-
-
-// ---- debug visualiser -------------------------------------
-//  prints the tree sideways (right branch on top)
-/*
-void printHuffmanTree(HuffNode *root, int depth) {
-    if (!root) return;
-
-    printHuffmanTree(root->right, depth + 1);
-
-    for (int i = 0; i < depth; i++) printf("    ");
-    if (root->symbol == -1) {
-        printf("[internal  freq=%llu]\n", root->freq);
-    } else {
-        printf("[byte=0x%02X freq=%llu]\n", root->symbol, root->freq);
-    }
-
-    printHuffmanTree(root->left, depth + 1);
-}
-*/
