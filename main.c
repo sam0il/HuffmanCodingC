@@ -6,13 +6,14 @@
 #include "huffman_tree.h"
 #include "code_table.h"
 #include "encoder.h"
+#include "searchdata.h"
 
 
 #define WAV_FILE  "Kanye West - Cant Tell Me Nothing.wav"
 #define MP3_FILE  "Kanye West - Cant Tell Me Nothing.mp3"
 #define OUT_FILE  "output.huff"
 
-// gcc -Wall -o huffman main.c buffer.c frequency.c huffman_tree.c code_table.c encoder.c
+// gcc -Wall -o huffman main.c buffer.c frequency.c huffman_tree.c code_table.c encoder.c searchdata.c
 
 int main(void) {
     // STEP 1 — Read the WAV file
@@ -24,7 +25,8 @@ if (!wav.data) {
     return 1;
 }
 
-long dataOffset = 44;
+// 44 skip way
+/*long dataOffset = 44;
 if (wav.size <= dataOffset) {
     fprintf(stderr, "File too small to be valid WAV.\n");
     freeFileBuffer(&wav);
@@ -32,11 +34,26 @@ if (wav.size <= dataOffset) {
 }
 
 unsigned char *audioData = wav.data + dataOffset;
-long dataSize = wav.size - dataOffset;
+long dataSize = wav.size - dataOffset;*/
+
+
+//search for data in .wav way
+DataChunk dc = findDataChunk(wav.data, wav.size);
+
+if (dc.offset < 0) {
+    fprintf(stderr, "Error: 'data' chunk not found.\n");
+    freeFileBuffer(&wav);
+    return 1;
+}
+
+unsigned char *audioData = wav.data + dc.offset;
+long dataSize = dc.size;
+
 
 FileBuffer audioBuffer;
 audioBuffer.data = audioData;
 audioBuffer.size = dataSize;
+
 
     if (!wav.data) {
         fprintf(stderr, "Failed to read WAV file. Exiting.\n");
